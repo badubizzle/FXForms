@@ -3050,6 +3050,7 @@ static void FXFormPreprocessFieldDictionary(NSMutableDictionary *dictionary)
 
 @property (nonatomic, strong) UITextView *textView;
 
+@property(nonatomic, strong) UILabel *placeholderLabel;
 @end
 
 
@@ -3062,11 +3063,13 @@ static void FXFormPreprocessFieldDictionary(NSMutableDictionary *dictionary)
     dispatch_once(&onceToken, ^{
         textView = [[UITextView alloc] init];
         textView.font = [UIFont systemFontOfSize:17];
+        
+        
     });
     
     textView.text = [field fieldDescription] ?: @" ";
     CGSize textViewSize = [textView sizeThatFits:CGSizeMake(width - FXFormFieldPaddingLeft - FXFormFieldPaddingRight, FLT_MAX)];
-    
+    //textView.textAlignment = NSTextAlignmentLeft;
     CGFloat height = [field.title length]? 21: 0; // label height
     height += FXFormFieldPaddingTop + ceilf(textViewSize.height) + FXFormFieldPaddingBottom;
     return height;
@@ -3077,6 +3080,11 @@ static void FXFormPreprocessFieldDictionary(NSMutableDictionary *dictionary)
     self.selectionStyle = UITableViewCellSelectionStyleNone;
     self.textLabel.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleBottomMargin | UIViewAutoresizingFlexibleRightMargin;
     
+    self.placeholderLabel = [[UILabel alloc]initWithFrame:CGRectZero];
+    self.placeholderLabel.numberOfLines = 0;
+    self.placeholderLabel.textAlignment = NSTextAlignmentLeft;
+    self.placeholderLabel.textColor = self.detailTextLabel.textColor;
+    
     self.textView = [[UITextView alloc] initWithFrame:CGRectMake(0, 0, 320, 21)];
     self.textView.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleBottomMargin | UIViewAutoresizingFlexibleRightMargin;
     self.textView.font = [UIFont systemFontOfSize:17];
@@ -3086,10 +3094,14 @@ static void FXFormPreprocessFieldDictionary(NSMutableDictionary *dictionary)
     self.textView.scrollEnabled = NO;
     [self.contentView addSubview:self.textView];
     
+    [self.contentView addSubview:self.placeholderLabel];
+    
     self.detailTextLabel.textAlignment = NSTextAlignmentLeft;
     self.detailTextLabel.numberOfLines = 0;
     
+    
     [self.contentView addGestureRecognizer:[[UITapGestureRecognizer alloc] initWithTarget:self.textView action:NSSelectorFromString(@"becomeFirstResponder")]];
+    self.detailTextLabel.hidden = YES;
 }
 
 - (void)dealloc
@@ -3120,11 +3132,28 @@ static void FXFormPreprocessFieldDictionary(NSMutableDictionary *dictionary)
     
     textViewFrame.origin.x += 5;
     textViewFrame.size.width -= 5;
+    
+    //CGRect f = self.detailTextLabel.frame;
+    
+    //f.origin = textViewFrame.origin;
+    //f.size = CGSizeMake(textViewFrame.size.width,  f.size.height);
+    
+    //self.detailTextLabel.numberOfLines = 0;
+    
+    //NSLog(@"%@", textViewFrame);
     self.detailTextLabel.frame = textViewFrame;
+    
+    self.placeholderLabel.frame = textViewFrame;
+    
+    //[self.detailTextLabel sizeThatFits:textViewFrame.size];
+    
     
     CGRect contentViewFrame = self.contentView.frame;
     contentViewFrame.size.height = self.textView.frame.origin.y + self.textView.frame.size.height + FXFormFieldPaddingBottom;
     self.contentView.frame = contentViewFrame;
+    
+    //self.textView.text = @"Hahaha";
+    self.detailTextLabel.hidden = YES;
 }
 
 - (void)update
@@ -3133,12 +3162,18 @@ static void FXFormPreprocessFieldDictionary(NSMutableDictionary *dictionary)
     self.textLabel.accessibilityValue = self.textLabel.text;
     self.textView.text = [self.field fieldDescription];
     self.detailTextLabel.text = self.field.placeholder;
+    
+    self.placeholderLabel.text = self.field.placeholder;
+    self.placeholderLabel.hidden = ([self.textView.text length]>0);
+    
     self.detailTextLabel.accessibilityValue = self.detailTextLabel.text;
     self.detailTextLabel.hidden = ([self.textView.text length] > 0);
+    
     
     self.textView.returnKeyType = UIReturnKeyDefault;
     self.textView.textAlignment = NSTextAlignmentLeft;
     self.textView.secureTextEntry = NO;
+    self.detailTextLabel.textAlignment = NSTextAlignmentLeft;
     
     if ([self.field.type isEqualToString:FXFormFieldTypeText])
     {
@@ -3183,6 +3218,8 @@ static void FXFormPreprocessFieldDictionary(NSMutableDictionary *dictionary)
         self.textView.autocapitalizationType = UITextAutocapitalizationTypeNone;
         self.textView.keyboardType = UIKeyboardTypeURL;
     }
+    
+    self.detailTextLabel.hidden = YES;
 }
 
 - (void)textViewDidBeginEditing:(__unused UITextView *)textView
@@ -3195,7 +3232,8 @@ static void FXFormPreprocessFieldDictionary(NSMutableDictionary *dictionary)
     [self updateFieldValue];
     
     //show/hide placeholder
-    self.detailTextLabel.hidden = ([textView.text length] > 0);
+    self.detailTextLabel.hidden =  ([textView.text length] > 0);
+    self.placeholderLabel.hidden =  ([textView.text length] > 0);
     
     //resize the tableview if required
     UITableView *tableView = [self tableView];
